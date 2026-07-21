@@ -1793,6 +1793,7 @@ class SmartSegmentationPlugin(MaiBotPlugin):
         name="smart_segmentation_after_replyer_response",
         description="在 Maisaka replyer 拿到模型回复后立刻预分段，把结果登记到进程内缓存，发送链可零 LLM 调用直接消费",
         timeout_ms=_REPLYER_HOOK_TIMEOUT_MS,
+        mode=HookMode.BLOCKING,
     )
     async def handle_maisaka_replyer_after_response(
         self,

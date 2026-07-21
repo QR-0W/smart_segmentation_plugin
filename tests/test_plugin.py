@@ -135,6 +135,10 @@ def test_get_components_registers_hook_handlers_for_current_host() -> None:
     replyer_hook_timeout_ms = hook_components["smart_segmentation_after_replyer_response"]["metadata"]["timeout_ms"]
     assert replyer_hook_timeout_ms == 25_000
     assert replyer_hook_timeout_ms > plugin_module._REPLYER_PREPARED_SEGMENT_TIMEOUT_SECONDS * 1000
+    assert (
+        hook_components["smart_segmentation_after_replyer_response"]["metadata"]["mode"]
+        == plugin_module.HookMode.BLOCKING
+    )
     assert "smart_segmentation_preserve_prepared_response" in hook_components
     assert (
         hook_components["smart_segmentation_preserve_prepared_response"]["metadata"]["hook"]
