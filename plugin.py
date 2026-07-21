@@ -5,12 +5,10 @@ from contextlib import contextmanager
 from typing import Any
 
 import asyncio
-import copy
 import hashlib
 import json
 import logging
 import os
-import random
 import re
 import time
 import tomllib
@@ -90,7 +88,9 @@ _recent_command_stream_expiries: dict[str, float] = {}
 _COMMAND_REPLY_GRACE_SECONDS = 1.0
 
 # maisaka 早期路径自己的 LLM 超时；这是当前唯一会做分段 LLM 调用的入口。
-_REPLYER_PREPARED_SEGMENT_TIMEOUT_SECONDS = 12.0
+_REPLYER_PREPARED_SEGMENT_TIMEOUT_SECONDS = 15.0
+# 外层 Hook 保留 5 秒余量，用于配置 RPC、调度和 IPC 返回。
+_REPLYER_PREPARED_HOOK_TIMEOUT_MS = 20_000
 
 # send_service.after_send 宿主默认强制 5000ms 超时；即发即同步在该阻塞窗口里连发多段会
 # 超过这个上限，这里用 handler 级 timeout_ms 显式放宽，避免连发被宿主 cancel 丢尾段。
@@ -1221,6 +1221,8 @@ class SmartSegmentationPlugin(MaiBotPlugin):
         "maisaka.replyer.after_response",
         name="smart_segmentation_after_replyer_response",
         description="在 Maisaka replyer 拿到模型回复后立刻预分段，把结果登记到进程内缓存，发送链可零 LLM 调用直接消费",
+        timeout_ms=_REPLYER_PREPARED_HOOK_TIMEOUT_MS,
+        mode=HookMode.BLOCKING,
     )
     async def handle_maisaka_replyer_after_response(
         self,
@@ -1273,7 +1275,7 @@ class SmartSegmentationPlugin(MaiBotPlugin):
             )
         except asyncio.TimeoutError:
             logger.warning(
-                "智能分段在 replyer.after_response 阶段超时（> %.2fs），发送前还会再尝试一次",
+                "智能分段在 replyer.after_response 阶段超时（> %.2fs），本次回复将放行原文",
                 _REPLYER_PREPARED_SEGMENT_TIMEOUT_SECONDS,
             )
             return {"action": "continue"}
