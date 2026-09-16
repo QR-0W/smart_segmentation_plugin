@@ -1567,9 +1567,11 @@ class SmartSegmentationPlugin(MaiBotPlugin):
                     request_type="plugin.smart_segmentation.segment",
                 )
             else:
+                # SDK 2.8+ 语义：model 仅表示具体模型名，任务必须通过 task_name 传递；
+                # 旧写法 model="utils" 会被宿主当作具体模型名而报“未找到名为 'utils' 的模型”。
                 raw_result = await self.ctx.llm.generate(
                     prompt=prompt,
-                    model=target_name,
+                    task_name=target_name or "utils",
                     temperature=temperature,
                     max_tokens=effective_max_tokens,
                 )
